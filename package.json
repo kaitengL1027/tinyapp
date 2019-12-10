@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/aseenontv1027/tinyapp/issues"
   },
-  "homepage": "https://github.com/aseenontv1027/tinyapp#readme"
+  "homepage": "https://github.com/aseenontv1027/tinyapp#readme",
+  "dependencies": {
+    "express": "^4.17.1"
+  }
 }
