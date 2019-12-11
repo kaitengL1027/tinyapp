@@ -28,6 +28,23 @@ app.post("/urls", (req, res) => {
   res.redirect(`/urls/${newData}`);  // Respond with 'Ok' (we will replace this)
 });
 
+app.post("/urls/:shortURL/update", (req, res) => {
+  urlDatabase[req.params.shortURL] = req.body.longURL;
+  console.log(urlDatabase);
+  res.redirect("/urls");
+});
+
+app.post("/urls/:shortURL/delete", (req, res) => {
+  delete urlDatabase[req.params.shortURL];
+  console.log(urlDatabase);
+  res.redirect("/urls");
+});
+
+app.post("/urls/:shortURL/edit", (req, res) => {
+  let sURL = req.params.shortURL;
+  res.redirect(`/urls/${sURL}`);
+});
+
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
@@ -42,6 +59,7 @@ app.get("/hello", (req, res) => {
 
 app.get("/urls", (req, res) => {
   let templateVars = { urls: urlDatabase };
+  console.log(templateVars);
   res.render("urls_index", templateVars);
 });
 
