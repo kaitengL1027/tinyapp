@@ -42,59 +42,79 @@ const generateRandomString = function() {
 };
 
 const checkEmailInUsers = function(toCheck) {
-  for (obj of users) {
+  let id = "";
+  for (let obj in users) {
     if (users[obj].email === toCheck) {
-      return true;
+      id = obj;
+      return id;
     }
   }
-  return false;
+  return id;
+};
+
+const checkPasswordInUsers = function(toCheck) {
+  let id = "";
+  for (let obj in users) {
+    if (users[obj].password === toCheck) {
+      id = obj;
+      return id;
+    }
+  }
+  return id;
+};
+
+const checkLoginIDByEmail = function(toCheck) {
+  let id = "";
+  for (let obj in users) {
+    if (users[obj].email === toCheck) {
+      id = obj;
+      return id;
+    }
+  }
+  return id;
 };
 
 
 
 // Post Handlers--------------------------------------------------------------------
 app.post("/login", (req, res) => {
-  
+  if ((checkEmailInUsers(req.body.email) === checkPasswordInUsers(req.body.password)) && checkEmailInUsers(req.body.email) !== "") {
+    res.cookie('user_id', checkLoginIDByEmail(req.body.email));
+    res.redirect("/urls");
+  } else {
+    res.status(403).end();
+  }
 });
 
 app.post("/register", (req, res) => {
   if (req.body.email === "" || req.body.password === "") {
-    res.statusCode = 400;
-  } else if (checkEmailInUsers(req.body.email)) {
-    res.statusCode = 400;
+    res.status(400).send('Please fill in form!');
+  } else if (checkEmailInUsers(req.body.email) !== "") {
+    res.status(400).send('User Already Exist!')
   } else {
     let newUserID = String(generateRandomString());
     users[newUserID] = {};
     users[newUserID]["id"] = newUserID;
     users[newUserID]["email"] = req.body.email;
     users[newUserID]["password"] = req.body.password;
-    console.log(users);
     res.cookie('user_id', newUserID);
     res.redirect("/urls");
   }
 });
 
-app.post("/login", (req, res) => {
-  res.cookie('username', req.body.username);
-  res.redirect("/urls");
-});
-
 app.post("/logout", (req, res) => {
-  res.clearCookie("username");
+  res.clearCookie("user_id");
   res.redirect("/urls");
 });
 
 app.post("/urls", (req, res) => {
   let newData = String(generateRandomString());  
-  console.log(req.body.longURL);  // Log the POST request body to the console
   urlDatabase[newData] = req.body.longURL;
-  console.log(urlDatabase);
   res.redirect(`/urls/${newData}`);  // Respond with 'Ok' (we will replace this)
 });
 
 app.post("/urls/:shortURL/update", (req, res) => {
   urlDatabase[req.params.shortURL] = req.body.longURL;
-  console.log(urlDatabase);
   res.redirect("/urls");
 });
 
@@ -120,7 +140,10 @@ app.get("/register", (req, res) => {
 });
 
 app.get("/login", (req, res) => {
-  res.render("login");
+  let templateVars = {
+    user: users[req.cookies["user_id"]]
+  };
+  res.render("login", templateVars);
 });
 
 app.get("/urls", (req, res) => {
@@ -128,6 +151,7 @@ app.get("/urls", (req, res) => {
     user: users[req.cookies["user_id"]],
     urls: urlDatabase
   };
+  console.log(templateVars.urls);
   res.render("urls_index", templateVars);
 });
 
