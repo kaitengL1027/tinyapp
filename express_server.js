@@ -7,11 +7,30 @@ const cookieParser = require('cookie-parser');
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
 
+
+
+// Data-----------------------------------------------------------------------------
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
 
+const users = { 
+  "userRandomID": {
+    id: "userRandomID", 
+    email: "user@example.com", 
+    password: "purple-monkey-dinosaur"
+  },
+ "user2RandomID": {
+    id: "user2RandomID", 
+    email: "user2@example.com", 
+    password: "dishwasher-funk"
+  }
+};
+
+
+
+// Helper Functions-----------------------------------------------------------------
 const generateRandomString = function() {
   let result = '';
   let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -21,6 +40,39 @@ const generateRandomString = function() {
     }
   return result;
 };
+
+const checkEmailInUsers = function(toCheck) {
+  for (obj of users) {
+    if (users[obj].email === toCheck) {
+      return true;
+    }
+  }
+  return false;
+};
+
+
+
+// Post Handlers--------------------------------------------------------------------
+app.post("/login", (req, res) => {
+  
+});
+
+app.post("/register", (req, res) => {
+  if (req.body.email === "" || req.body.password === "") {
+    res.statusCode = 400;
+  } else if (checkEmailInUsers(req.body.email)) {
+    res.statusCode = 400;
+  } else {
+    let newUserID = String(generateRandomString());
+    users[newUserID] = {};
+    users[newUserID]["id"] = newUserID;
+    users[newUserID]["email"] = req.body.email;
+    users[newUserID]["password"] = req.body.password;
+    console.log(users);
+    res.cookie('user_id', newUserID);
+    res.redirect("/urls");
+  }
+});
 
 app.post("/login", (req, res) => {
   res.cookie('username', req.body.username);
@@ -57,33 +109,38 @@ app.post("/urls/:shortURL/edit", (req, res) => {
   res.redirect(`/urls/${sURL}`);
 });
 
-app.get("/", (req, res) => {
-  res.send("Hello!");
+
+
+// Get Handlers---------------------------------------------------------------------
+app.get("/register", (req, res) => {
+  let templateVars = {
+    user: users[req.cookies["user_id"]]
+  };
+  res.render("register", templateVars);
 });
 
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
+app.get("/login", (req, res) => {
+  res.render("login");
 });
 
 app.get("/urls", (req, res) => {
   let templateVars = {
-    username: req.cookies["username"],
+    user: users[req.cookies["user_id"]],
     urls: urlDatabase
   };
-  console.log(templateVars);
   res.render("urls_index", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
   let templateVars = {
-    username: req.cookies["username"]
+    user: users[req.cookies["user_id"]]
   };
   res.render("urls_new", templateVars);
 });
 
 app.get("/urls/:shortURL", (req, res) => {
   let templateVars = {
-    username: req.cookies["username"],
+    user: users[req.cookies["user_id"]],
     shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL]
   };
@@ -91,11 +148,20 @@ app.get("/urls/:shortURL", (req, res) => {
 })
 
 app.get("/u/:shortURL", (req, res) => {
-  // const longURL = ...
   let longURL = urlDatabase[req.params.shortURL];
   res.redirect(longURL);
 });
 
+
+
+// Defaults------------------------------------------------------------------
+app.get("/", (req, res) => {
+  res.send("Hello!");
+});
+
+app.get("/urls.json", (req, res) => {
+  res.json(urlDatabase);
+});
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
