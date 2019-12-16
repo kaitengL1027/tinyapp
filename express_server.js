@@ -13,6 +13,14 @@ app.use(cookieSession({
 }));
 app.use(bodyParser.urlencoded({extended: true}));
 
+const {
+  generateRandomString,
+  checkEmailInUsers,
+  checkPasswordByEmail,
+  checkLoginIDByEmail,
+  urlDatabaseID
+} = require('./helpers');
+
 let numberOfVisits = 0;
 app.use((req, res, next) => {
   numberOfVisits++;
@@ -27,75 +35,17 @@ const urlDatabase = {
   i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" }
 };
 
-const users = { 
+const users = {
   "userRandomID": {
-    id: "userRandomID", 
-    email: "user@example.com", 
+    id: "userRandomID",
+    email: "user@example.com",
     password: "purple-monkey-dinosaur"
   },
- "user2RandomID": {
-    id: "user2RandomID", 
-    email: "user2@example.com", 
+  "user2RandomID": {
+    id: "user2RandomID",
+    email: "user2@example.com",
     password: "dishwasher-funk"
   }
-};
-
-
-
-// Helper Functions-----------------------------------------------------------------
-const generateRandomString = function() {
-  let result = '';
-  let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let length = characters.length;
-    for (let i = 0; i < 6; i++) {
-      result += characters.charAt(Math.floor(Math.random() * length));
-    }
-  return result;
-};
-
-const checkEmailInUsers = function(email, users) {
-  for (let user in users) {
-    if (users[user].email === email) {
-      return true;
-    }
-  }
-  return false;
-};
-
-const checkPasswordByEmail = function(email, password, users) {
-  for (let user in users) {
-    if (users[user].email === email) {
-      if (bcrypt.compareSync(password, users[user].password)) {
-        return true;
-      } else {
-        return false;
-      }
-    }
-  }
-  return false;
-};
-
-const checkLoginIDByEmail = function(email, users) {
-  let id = "";
-  for (let user in users) {
-    if (users[user].email === email) {
-      id = users[user].id;
-      return id;
-    }
-  }
-  return null;
-};
-
-const urlDatabaseID = function(id, urlDatabase) {
-  let singleUserData = {};
-  for (let shortU in urlDatabase) {
-    if (urlDatabase[shortU].userID === id) {
-      singleUserData[shortU] = {};
-      singleUserData[shortU]["longURL"] = urlDatabase[shortU].longURL;
-      singleUserData[shortU]["userID"] = urlDatabase[shortU].userID;
-    }
-  }
-  return singleUserData;
 };
 
 
@@ -118,7 +68,7 @@ app.post("/register", (req, res) => {
   if (req.body.email === "" || req.body.password === "") {
     res.status(400).send('Please fill in form!');
   } else if (checkEmailInUsers(req.body.email, users)) {
-    res.status(400).send('User Already Exist!')
+    res.status(400).send('User Already Exist!');
   } else {
     let newUserID = String(generateRandomString());
     users[newUserID] = {};
@@ -137,7 +87,7 @@ app.post("/logout", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  let newData = String(generateRandomString());  
+  let newData = String(generateRandomString());
   urlDatabase[newData] = {};
   urlDatabase[newData]["longURL"] = req.body.longURL;
   urlDatabase[newData]["userID"] = req.session.user_id;
@@ -152,10 +102,6 @@ app.post("/urls/:shortURL/update", (req, res) => {
       res.redirect("/urls");
     }
   }
-  let templateLogIn = {
-    user: users[req.session.user_id]
-  };
-  res.render("log_in_first", templateLogIn);
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
@@ -166,10 +112,6 @@ app.post("/urls/:shortURL/delete", (req, res) => {
       res.redirect("/urls");
     }
   }
-  let templateLogIn = {
-    user: users[req.session.user_id]
-  };
-  res.render("log_in_first", templateLogIn);  
 });
 
 app.post("/urls/:shortURL/edit", (req, res) => {
@@ -180,10 +122,6 @@ app.post("/urls/:shortURL/edit", (req, res) => {
       res.redirect(`/urls/${sURL}`);
     }
   }
-  let templateLogIn = {
-    user: users[req.session.user_id]
-  };
-  res.render("log_in_first", templateLogIn);
 });
 
 
@@ -207,7 +145,7 @@ app.get("/urls", (req, res) => {
   if (req.session.user_id === undefined) {
     let templateLogIn = {
       user: users[req.session.user_id]
-    }
+    };
     res.render("log_in_first", templateLogIn);
   } else {
     let templateVars = {
@@ -231,8 +169,10 @@ app.get("/urls/new", (req, res) => {
 
 app.get("/urls/:shortURL", (req, res) => {
   let UserData = urlDatabaseID(req.session.user_id, urlDatabase);
+  let response = false;
   for (let currentShortURL in UserData) {
     if (req.params.shortURL === currentShortURL) {
+      response = true;
       let templateVars = {
         user: users[req.session.user_id],
         shortURL: req.params.shortURL,
@@ -241,10 +181,14 @@ app.get("/urls/:shortURL", (req, res) => {
       res.render("urls_show", templateVars);
     }
   }
-  let templateLogIn = {
-    user: users[req.session.user_id]
-  };
-  res.render("log_in_first", templateLogIn);
+  if (response === true) {
+    res.end();
+  } else {
+    let templateLogIn = {
+      user: users[req.session.user_id]
+    };
+    res.render("log_in_first", templateLogIn);
+  }
 });
 
 app.get("/u/:shortURL", (req, res) => {
